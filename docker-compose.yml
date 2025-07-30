@@ -1,0 +1,159 @@
+# version: "3.7"
+################################## NETWORKS #######################################################
+networks:
+  mi_network:
+    name: mi_network
+    external: true
+# CREAR LA NETWORK CON "docker network create --subnet 10.0.0.0/24 mi_network"
+################################## SERVICES #######################################################
+services:
+
+  plex:
+#    image: lscr.io/linuxserver/plex
+#    image: jaymoulin/plex:1.30.1.6562
+    image: jaymoulin/plex
+    container_name: plex
+    network_mode: host
+    environment:
+      PUID: 1000 # optional, your user id
+      PGID: 1000 # optional, your group id
+#      TZ: America/Montevideo
+      TZ: America/Argentina/Buenos_Aires
+      VERSION: docker
+#      PLEX_CLAIM: #optional
+    expose:
+      - 32400
+      - 33400
+    # ports:
+    #   - 32400:32400
+    volumes:
+      - /mnt/plex-config/tmp:/tmp
+      - /mnt/plex-config/Library:/root/Library
+      - /mnt/0-MULTIMEDIA:/media
+      # - /mnt/0-MULTIMEDIA/SERIES:/tv
+      # - /mnt/0-MULTIMEDIA/PELIS:/movies
+      # - /mnt/0-MULTIMEDIA/PELIS_PIPIS:/PelisPipis
+      # - /mnt/0-MULTIMEDIA/SERIES_PIPIS:/SeriesPipis
+    # networks:
+    #   mi_network:
+    #     ipv4_address: 10.0.0.6
+    restart: unless-stopped
+
+  transmission:
+    image: lscr.io/linuxserver/transmission
+    container_name: transmission
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: America/Argentina/Buenos_Aires
+      USER: Admin # CAMBIAR
+      PASS: Pass # CAMBIAR
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+    volumes:
+      - /mnt/torrent-config/transmission:/config
+      - /mnt/torrent-config/watch:/watch
+      - /mnt/0-MULTIMEDIA/downloads:/downloads
+    cap_add:
+      - NET_ADMIN
+    networks:
+      mi_network:
+        ipv4_address: 10.0.0.7
+    restart: unless-stopped
+
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: America/Argentina/Buenos_Aires
+    ports:
+      - 8989:8989
+    volumes:
+      - /mnt/torrent-config/sonarr:/config
+      - /mnt/0-MULTIMEDIA/SERIES:/tv
+      - /mnt/0-MULTIMEDIA/SERIES_PIPIS:/tv_kids
+      - /mnt/0-MULTIMEDIA/downloads:/downloads
+    networks:
+      mi_network:
+        ipv4_address: 10.0.0.8
+    restart: unless-stopped
+
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: America/Argentina/Buenos_Aires
+    ports:
+      - 7878:7878
+    volumes:
+      - /mnt/torrent-config/radarr:/config
+      - /mnt/0-MULTIMEDIA/PELIS:/movies
+      - /mnt/0-MULTIMEDIA/PELIS_PIPIS:/movies_kids
+      - /mnt/0-MULTIMEDIA/downloads:/downloads
+    networks:
+      mi_network:
+        ipv4_address: 10.0.0.9
+    restart: unless-stopped
+
+  prowlarr:
+    image: linuxserver/prowlarr
+    container_name: prowlarr
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: America/Argentina/Buenos_Aires
+    ports:
+      - 9696:9696
+    volumes:
+      - /mnt/torrent-config/prowlarr:/config
+      - /mnt/torrent-config/watch:/watch
+    networks:
+      mi_network:
+        ipv4_address: 10.0.0.10
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr
+    container_name: bazarr
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: America/Argentina/Buenos_Aires
+    ports:
+      - 6767:6767
+    volumes:
+      - /mnt/torrent-config/bazarr:/config
+      - /mnt/0-MULTIMEDIA/PELIS:/movies
+      - /mnt/0-MULTIMEDIA/PELIS_PIPIS:/movies_kids
+      - /mnt/0-MULTIMEDIA/SERIES:/tv
+      - /mnt/0-MULTIMEDIA/SERIES_PIPIS:/tv_kids
+    networks:
+      mi_network:
+        ipv4_address: 10.0.0.11
+    restart: unless-stopped
+    
+  flaresolverr:
+    # DockerHub mirror flaresolverr/flaresolverr:latest
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_HTML: ${LOG_HTML:-false}
+      CAPTCHA_SOLVER: ${CAPTCHA_SOLVER:-none}
+      #TZ: Europe/London
+      TZ: America/Argentina/Buenos_Aires
+    ports:
+      - 8191:8191
+    networks:
+      mi_network:
+        ipv4_address: 10.0.0.12
+    restart: unless-stopped
+###################################################################################################
